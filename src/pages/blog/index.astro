@@ -1,0 +1,262 @@
+---
+import Base from '../../layouts/Base.astro';
+import Prompt from '../../components/Prompt.astro';
+import { allTags, getPosts, isoDate, postUrl, tagText } from '../../lib/blog';
+
+const posts = await getPosts();
+const tags = [{ tag: 'all', count: posts.length }, ...allTags(posts)];
+
+const years: { year: string; posts: typeof posts }[] = [];
+for (const post of posts) {
+  const year = String(post.data.date.getUTCFullYear());
+  const last = years.at(-1);
+  if (last?.year === year) last.posts.push(post);
+  else years.push({ year, posts: [post] });
+}
+const postsLabel = (n: number) => `${n} ${n === 1 ? 'post' : 'posts'}`;
+---
+
+<Base
+  title="Blog — Jovan Tomović"
+  description="Notes on Solana, security, hackathons and the tools I build."
+  current="blog"
+  crumb="blog"
+>
+  <div class="wrap page" data-blog>
+    <Prompt cmd="ls blog/" />
+    <h1 class="page-title">blog</h1>
+    <p class="lede">Notes on Solana, security, hackathons and the tools I build. Written so I remember, shared in case it helps you.</p>
+
+    {
+      tags.length > 2 && (
+        <div role="group" aria-label="Filter by tag" class="tags">
+          {tags.map((t) => (
+            <button type="button" class="btn tag" data-tag={t.tag} aria-pressed={t.tag === 'all' ? 'true' : 'false'}>
+              {t.tag}
+              <span class="tag-count">{t.count}</span>
+            </button>
+          ))}
+        </div>
+      )
+    }
+
+    <div class="cols">
+      <section aria-label="Posts" class="posts">
+        {posts.length === 0 && <p class="none">&gt; nothing here yet</p>}
+        {
+          years.map((y) => (
+            <div class="year" data-year>
+              <div class="year-head">
+                <h2>{y.year}</h2>
+                <span aria-hidden="true" class="rule dashed" />
+                <span aria-live="polite" class="year-count" data-year-count>
+                  {postsLabel(y.posts.length)}
+                </span>
+              </div>
+              <ol class="list">
+                {y.posts.map((p) => (
+                  <li data-post data-tags={p.data.tags.join(' ')}>
+                    <a href={postUrl(p)} class="row post">
+                      <time datetime={isoDate(p.data.date)}>{isoDate(p.data.date)}</time>
+                      <div class="post-body">
+                        <h3>{p.data.title}</h3>
+                        <p class="excerpt">{p.data.description}</p>
+                        {p.data.tags.length > 0 && <p class="post-tags">{tagText(p.data.tags)}</p>}
+                      </div>
+                      <span aria-hidden="true" class="arrow">→</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))
+        }
+      </section>
+
+      <aside aria-label="About this blog" class="side">
+        <div class="side-box">
+          <p class="label">about</p>
+          <p class="about">Written by Jovan Tomović, 4th-year student. More on the <a href="/">home page</a>.</p>
+        </div>
+        <div class="side-box">
+          <p class="label">follow</p>
+          <div class="follow">
+            <a href="/blog/rss.xml" class="button btn small">rss</a>
+            <a href="/blog/atom.xml" class="button btn small">atom</a>
+            <a href="/links/" class="button btn small">all links</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-blog]')!;
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-tag]')];
+
+  function pick(tag: string) {
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tag === tag)));
+    root.querySelectorAll<HTMLElement>('[data-year]').forEach((year) => {
+      let shown = 0;
+      year.querySelectorAll<HTMLElement>('[data-post]').forEach((li) => {
+        const match = tag === 'all' || li.dataset.tags!.split(' ').includes(tag);
+        li.hidden = !match;
+        if (match) shown++;
+      });
+      year.hidden = shown === 0;
+      year.querySelector('[data-year-count]')!.textContent = `${shown} ${shown === 1 ? 'post' : 'posts'}`;
+    });
+  }
+
+  buttons.forEach((b) => b.addEventListener('click', () => pick(b.dataset.tag!)));
+</script>
+
+<style>
+  .page {
+    padding-top: 48px;
+  }
+  .tags {
+    margin-top: 36px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--line2);
+    border-radius: 0;
+    background: transparent;
+    color: var(--fg);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tag[aria-pressed='true'] {
+    background: var(--fg);
+    color: var(--bg);
+  }
+  .tag-count {
+    opacity: 0.75;
+  }
+  .cols {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 32px;
+  }
+  .posts {
+    flex: 999 1 600px;
+    min-width: 0;
+  }
+  .year + .year {
+    margin-top: 32px;
+  }
+  .year-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .year-count {
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+  }
+  .list li {
+    border-bottom: 1px solid var(--line);
+  }
+  .post {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 24px;
+    padding: 20px 16px;
+    text-decoration: none;
+  }
+  time {
+    flex: 0 0 104px;
+    font-size: 13px;
+    color: var(--mute);
+    padding-top: 1px;
+  }
+  .post-body {
+    flex: 1 1 360px;
+    min-width: 0;
+  }
+  h3 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+  .excerpt {
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--mute);
+  }
+  .post-tags {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--mute);
+    white-space: pre-wrap;
+  }
+  .arrow {
+    align-self: center;
+    color: var(--mute);
+  }
+  .none {
+    color: var(--mute);
+  }
+  .side {
+    flex: 1 1 260px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .side-box {
+    background: var(--panel);
+    padding: 20px;
+  }
+  .side-box .label {
+    margin-bottom: 10px;
+  }
+  .about {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .follow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  @media (max-width: 580px) {
+    .page {
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-top: 32px;
+    }
+    .arrow {
+      display: none;
+    }
+  }
+</style>

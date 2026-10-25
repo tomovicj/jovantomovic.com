@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Not found — Jovan Tomović" description="This page does not exist.">
+  <div class="wrap page">
+    <p class="cmd"><span class="ps1">~ $</span> cd <span data-path>this-page</span></p>
+    <p class="err">cd: no such file or directory</p>
+    <h1 class="page-title">404</h1>
+    <p class="lede">This page does not exist, or it moved.</p>
+    <div class="actions">
+      <a href="/" class="button primary">home <span aria-hidden="true">→</span></a>
+      <a href="/blog/" class="button btn">blog</a>
+    </div>
+  </div>
+</Base>
+
+<script>
+  const el = document.querySelector('[data-path]');
+  if (el) el.textContent = decodeURIComponent(location.pathname);
+</script>
+
+<style>
+  .page {
+    padding-top: 48px;
+  }
+  .cmd,
+  .err {
+    margin: 0;
+    font-size: 13px;
+    color: var(--mute);
+    overflow-wrap: anywhere;
+  }
+  .err {
+    margin-bottom: 16px;
+  }
+  .ps1 {
+    color: var(--acc);
+  }
+  .actions {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+</style>

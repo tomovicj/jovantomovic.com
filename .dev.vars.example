@@ -1,0 +1,3 @@
+# Copy to .dev.vars for `wrangler dev`. These are Turnstile's always-pass test secrets.
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+CONTACT_TO=you@example.com

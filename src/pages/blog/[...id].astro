@@ -1,0 +1,316 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getImage, Image } from 'astro:assets';
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { getPosts, isoDate, postUrl, tagText, type Post } from '../../lib/blog';
+
+export const getStaticPaths = (async () => {
+  const posts = await getPosts();
+  return posts.map((post, i) => ({
+    params: { id: post.id },
+    // Posts are newest first, so the next index is the older one.
+    props: { post, older: posts[i + 1], newer: posts[i - 1] },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  post: Post;
+  older?: Post;
+  newer?: Post;
+}
+
+const { post, older, newer } = Astro.props;
+const { Content, headings } = await render(post);
+const toc = headings.filter((h) => h.depth === 2);
+const { title, description, date, updated, tags, cover, coverAlt } = post.data;
+const ogImage = cover ? (await getImage({ src: cover, width: 1200, format: 'jpg' })).src : undefined;
+---
+
+<Base title={title} description={description} current="blog" crumb="blog" image={ogImage} type="article">
+  <div class="wrap page">
+    <nav aria-label="Breadcrumb" class="breadcrumb">
+      <a href="/blog/">blog</a>
+      {tags[0] && <span> / {tags[0]}</span>}
+      <span> / </span><span class="here" aria-current="page">{post.id}</span>
+    </nav>
+
+    <div class="cols">
+      {
+        toc.length > 0 && (
+          <aside aria-label="Contents" class="toc">
+            <p class="label">contents</p>
+            <ol>
+              {toc.map((h, i) => (
+                <li>
+                  <a href={`#${h.slug}`} class="row">
+                    <span class="n">{String(i + 1).padStart(2, '0')}</span>
+                    {h.text}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </aside>
+        )
+      }
+
+      <article class="article">
+        <div class="meta">
+          <time datetime={isoDate(date)}>{isoDate(date)}</time>
+          {updated && <span>updated {isoDate(updated)}</span>}
+          {tags.length > 0 && <span class="tags">{tagText(tags)}</span>}
+        </div>
+        <h1>{title}</h1>
+        {
+          cover && (
+            <figure class="cover">
+              <Image src={cover} alt={coverAlt!} widths={[480, 760, 1140]} sizes="(max-width: 800px) 100vw, 760px" loading="eager" />
+            </figure>
+          )
+        }
+        <div class="prose">
+          <Content />
+        </div>
+
+        {
+          (older || newer) && (
+            <nav aria-label="More posts" class="more">
+              {older ? (
+                <a href={postUrl(older)} class="row">
+                  <span class="dir">← older</span>
+                  <span class="t">{older.data.title}</span>
+                </a>
+              ) : (
+                <span class="spacer" />
+              )}
+              {newer ? (
+                <a href={postUrl(newer)} class="row right">
+                  <span class="dir">newer →</span>
+                  <span class="t">{newer.data.title}</span>
+                </a>
+              ) : (
+                <span class="spacer" />
+              )}
+            </nav>
+          )
+        }
+      </article>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .page {
+    padding-top: 40px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--mute);
+    overflow-wrap: anywhere;
+  }
+  .breadcrumb a {
+    color: var(--mute);
+  }
+  .here {
+    color: var(--fg);
+  }
+  .cols {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 48px;
+  }
+  .toc {
+    flex: 1 1 200px;
+    min-width: 0;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    position: sticky;
+    top: 24px;
+  }
+  .toc .label {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+  }
+  .toc a {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .n {
+    color: var(--mute);
+  }
+  .article {
+    flex: 999 1 560px;
+    min-width: 0;
+    max-width: 760px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .tags {
+    white-space: pre-wrap;
+  }
+  h1 {
+    margin: 12px 0 0;
+    font-size: 38px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .cover {
+    margin: 32px 0 0;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .cover :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Post body, as written in Markdown. */
+  .prose {
+    counter-reset: section;
+  }
+  .prose > :global(p:first-child) {
+    margin-top: 24px;
+    font-size: 17px;
+    line-height: 1.7;
+  }
+  .prose :global(p),
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 16px 0 0;
+    font-size: 16px;
+    line-height: 1.75;
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    padding-left: 24px;
+  }
+  .prose :global(li + li) {
+    margin-top: 4px;
+  }
+  .prose :global(h2) {
+    margin: 48px 0 0;
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 700;
+    scroll-margin-top: 24px;
+  }
+  .prose :global(h2)::before {
+    counter-increment: section;
+    content: counter(section, decimal-leading-zero) ' ';
+    color: var(--acc);
+  }
+  .prose :global(h3) {
+    margin: 32px 0 0;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .prose :global(a) {
+    text-underline-offset: 3px;
+  }
+  .prose :global(img) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-top: 24px;
+    border: 1px solid var(--line);
+  }
+  .prose :global(figure img) {
+    margin: 0;
+    border: 0;
+  }
+  /* Code blocks written straight in Markdown, outside <CodeFigure>. */
+  .prose > :global(pre) {
+    margin: 24px 0 0;
+    padding: 16px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .prose :global(blockquote) {
+    margin: 32px 0 0;
+    padding: 16px 20px;
+    border: 1px dashed var(--line2);
+  }
+  .prose :global(blockquote p) {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .prose :global(blockquote strong:first-child) {
+    color: var(--acc);
+  }
+  .prose :global(blockquote strong:first-child)::before {
+    content: '> ';
+  }
+  .prose :global(hr) {
+    margin: 40px 0 0;
+    border: 0;
+    border-top: 1px dashed var(--line);
+  }
+
+  .more {
+    margin-top: 56px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .more > * {
+    flex: 1 1 260px;
+    min-width: 0;
+    background: var(--bg);
+    padding: 16px 20px;
+    text-decoration: none;
+  }
+  .more .right {
+    text-align: right;
+  }
+  .dir {
+    display: block;
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .t {
+    display: block;
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  @media (max-width: 880px) {
+    .toc {
+      position: static;
+    }
+  }
+  @media (max-width: 580px) {
+    .page {
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-top: 24px;
+    }
+    h1 {
+      font-size: 30px;
+    }
+  }
+</style>

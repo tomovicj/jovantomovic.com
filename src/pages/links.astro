@@ -1,0 +1,150 @@
+---
+import { getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+
+const profile = (await getEntry('profile', 'profile'))!.data;
+const links = (await getEntry('links', 'links'))!.data.links;
+
+const arrow = (href: string) => {
+  if (/\.pdf($|[?#])/i.test(href)) return '↓';
+  if (/^https?:\/\//.test(href)) return '↗';
+  return '→';
+};
+---
+
+<Base
+  title="Links — Jovan Tomović"
+  description={`${profile.name}: ${profile.tagline}`}
+  current="links"
+  crumb="links"
+>
+  <div class="page">
+    <div>
+      <h1>{profile.name}</h1>
+      <p class="tagline">{profile.tagline}</p>
+    </div>
+
+    {
+      profile.banner && (
+        <a href={profile.banner.href} class="row banner">
+          <span aria-hidden="true" class="star">★</span>
+          <span class="banner-text">
+            <span class="banner-label">{profile.banner.label}</span> — {profile.banner.text}
+          </span>
+          <span aria-hidden="true" class="arrow">→</span>
+        </a>
+      )
+    }
+
+    <ul class="links">
+      {
+        links.map((l, i) => (
+          <li>
+            <a href={l.href} class="row">
+              <span class="n">{String(i + 1).padStart(2, '0')}</span>
+              <span class="l-label">{l.label}</span>
+              <span class="l-url">{l.url}</span>
+              <span aria-hidden="true" class="arrow">{arrow(l.href)}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Base>
+
+<style>
+  .page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 56px 24px 0;
+  }
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  .tagline {
+    margin: 8px 0 0;
+    font-size: 14px;
+    color: var(--mute);
+  }
+  .banner {
+    margin-top: 36px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 56px;
+    padding: 12px 18px;
+    border: 1px solid var(--acc);
+    text-decoration: none;
+  }
+  .star,
+  .banner-label {
+    color: var(--acc);
+  }
+  .banner-label {
+    font-weight: 700;
+  }
+  .banner-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .arrow {
+    color: var(--mute);
+  }
+  .links {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--line);
+  }
+  .links li {
+    background: var(--bg);
+  }
+  .links a {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 56px;
+    padding: 0 18px;
+    text-decoration: none;
+  }
+  .n {
+    width: 22px;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .l-label {
+    width: 84px;
+    flex-shrink: 0;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .l-url {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  @media (max-width: 580px) {
+    .page {
+      padding: 40px 16px 0;
+    }
+    .links a {
+      gap: 12px;
+      padding: 0 14px;
+    }
+  }
+</style>

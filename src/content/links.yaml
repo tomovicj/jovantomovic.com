@@ -1,0 +1,32 @@
+# Every link on /links, in this order. Numbers and arrows are added automatically:
+#   → for pages on this site and mailto:, ↗ for other sites, ↓ for .pdf files.
+# contact: true also lists the link under "elsewhere" on /contact.
+links:
+  - label: website
+    url: jovantomovic.com
+    href: /
+  - label: blog
+    url: jovantomovic.com/blog
+    href: /blog/
+  - label: github
+    url: github.com/tomovicj
+    href: https://github.com/tomovicj
+    contact: true
+  - label: linkedin
+    url: linkedin.com/in/[handle]
+    href: https://www.linkedin.com/
+    contact: true
+  - label: x
+    url: x.com/[handle]
+    href: https://x.com/
+    contact: true
+  - label: telegram
+    url: t.me/[handle]
+    href: https://t.me/
+    contact: true
+  - label: cv
+    url: cv.pdf · one page
+    href: /cv.pdf
+  - label: email
+    url: hi@jovantomovic.com
+    href: mailto:hi@jovantomovic.com

@@ -1,0 +1,27 @@
+---
+interface Props {
+  cmd: string;
+  blink?: boolean;
+  class?: string;
+}
+
+const { cmd, blink = true, class: className } = Astro.props;
+---
+
+<p class:list={['prompt', className]}>
+  <span class="ps1">~ $</span>{' '}{cmd}{blink && <span class="blink" aria-hidden="true">▌</span>}
+</p>
+
+<style>
+  .prompt {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .ps1 {
+    color: var(--acc);
+  }
+  .blink {
+    color: var(--fg);
+  }
+</style>

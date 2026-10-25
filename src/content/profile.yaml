@@ -1,0 +1,19 @@
+# Who you are. Used on the home page, the links page, the blog sidebar and in page metadata.
+name: Jovan Tomović
+tagline: student · solana · security · hackathons
+bio: 4th-year student. I build on Solana, take on security challenges and hackathons, and write down what I learn along the way.
+email: hi@jovantomovic.com
+cv: /cv.pdf   # put the file at public/cv.pdf
+
+# The "now/" tree on the home page, top to bottom.
+now:
+  - year 4 @ [UNIVERSITY]
+  - rwa card game on solana
+  - solana tx debugger
+  - personal dashboard
+
+# Optional highlighted row at the top of /links. Delete this block to hide it.
+banner:
+  label: new
+  text: 3rd place at GDG DevFest Belgrade AI hackathon
+  href: /

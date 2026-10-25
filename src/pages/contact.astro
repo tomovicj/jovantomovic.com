@@ -1,0 +1,341 @@
+---
+import { getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Prompt from '../components/Prompt.astro';
+import { TURNSTILE_SITE_KEY } from '../config';
+
+const profile = (await getEntry('profile', 'profile'))!.data;
+const socials = (await getEntry('links', 'links'))!.data.links.filter((l) => l.contact);
+---
+
+<Base
+  title="Contact — Jovan Tomović"
+  description="Projects, hackathon teams, work, or a question about something I wrote."
+  current="contact"
+  crumb="contact"
+>
+  <div class="wrap page">
+    <Prompt cmd="mail jovan" blink={false} />
+    <h1 class="page-title">contact</h1>
+    <p class="lede intro">Projects, hackathon teams, work, or a question about something I wrote. Email is the fastest way to reach me.</p>
+
+    <div class="panes">
+      <div class="pane left">
+        <div class="email-box">
+          <p class="label">email</p>
+          <div class="email-row">
+            <a href={`mailto:${profile.email}`} class="email">{profile.email}</a>
+            <button type="button" class="button btn copy" data-copy={profile.email}>[copy]</button>
+          </div>
+        </div>
+        {
+          socials.length > 0 && (
+            <>
+              <p class="label elsewhere">elsewhere</p>
+              <ul class="socials">
+                {socials.map((s) => (
+                  <li>
+                    <a href={s.href} class="row">
+                      <span class="s-label">{s.label}</span>
+                      <span class="s-handle">{s.url}</span>
+                      <span aria-hidden="true" class="s-arrow">↗</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )
+        }
+      </div>
+
+      <div class="pane right">
+        <p class="label form-h">or write here</p>
+        <form data-contact data-sitekey={TURNSTILE_SITE_KEY} novalidate>
+          <div class="pair">
+            <div class="field">
+              <label for="c-name">name</label>
+              <input id="c-name" name="name" type="text" autocomplete="name" maxlength="100" required />
+            </div>
+            <div class="field">
+              <label for="c-email">email</label>
+              <input id="c-email" name="email" type="email" autocomplete="email" maxlength="254" required />
+            </div>
+          </div>
+          <div class="field">
+            <label for="c-msg">message</label>
+            <textarea id="c-msg" name="message" rows="8" maxlength="5000" required></textarea>
+          </div>
+          <div class="hp" aria-hidden="true">
+            <label for="c-website">website</label>
+            <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+          <div class="turnstile" data-turnstile></div>
+          <div class="send-row">
+            <p aria-live="polite" class="status" data-status>&gt; all fields are required</p>
+            <button type="submit" class="button primary send">send <span aria-hidden="true">→</span></button>
+          </div>
+          <noscript><p class="status">&gt; the form needs JavaScript. Email works without it.</p></noscript>
+        </form>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  type Turnstile = {
+    render: (el: HTMLElement, opts: Record<string, unknown>) => string;
+    reset: (id?: string) => void;
+  };
+  const w = window as typeof window & { turnstile?: Turnstile; onTurnstileLoad?: () => void };
+
+  // [copy]
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy!);
+        btn.textContent = '[copied ✓]';
+      } catch {
+        btn.textContent = '[copy failed]';
+      }
+    }),
+  );
+
+  // Contact form
+  const form = document.querySelector<HTMLFormElement>('[data-contact]')!;
+  const status = form.querySelector<HTMLElement>('[data-status]')!;
+  const send = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+  const slot = form.querySelector<HTMLElement>('[data-turnstile]')!;
+  let widget: string | undefined;
+
+  const theme = () =>
+    document.documentElement.dataset.theme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+  w.onTurnstileLoad = () => {
+    widget = w.turnstile!.render(slot, {
+      sitekey: form.dataset.sitekey,
+      theme: theme(),
+      size: 'flexible',
+      // Only shows up when Cloudflare is unsure the visitor is a person.
+      appearance: 'interaction-only',
+    });
+  };
+  const script = document.createElement('script');
+  script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad';
+  script.async = true;
+  document.head.append(script);
+
+  const say = (text: string) => (status.textContent = `> ${text}`);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      const bad = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(':invalid')!;
+      say(bad.validity.valueMissing ? 'all fields are required' : `check the ${bad.name} field`);
+      bad.focus();
+      return;
+    }
+
+    send.disabled = true;
+    say('sending…');
+    try {
+      const res = await fetch('/api/contact', { method: 'POST', body: new FormData(form) });
+      const data: { ok: boolean; error?: string } = await res.json().catch(() => ({ ok: false }));
+      if (res.ok && data.ok) {
+        form.reset();
+        say('sent. thanks, I will get back to you.');
+      } else {
+        say(data.error ?? 'something went wrong, please email me instead');
+      }
+    } catch {
+      say('network error, please try again');
+    } finally {
+      send.disabled = false;
+      if (w.turnstile && widget) w.turnstile.reset(widget);
+    }
+  });
+</script>
+
+<style>
+  .page {
+    padding-top: 48px;
+  }
+  .intro {
+    margin-bottom: 40px;
+  }
+  .panes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .pane {
+    min-width: 0;
+    background: var(--bg);
+  }
+  .left {
+    flex: 1 1 360px;
+    display: flex;
+    flex-direction: column;
+  }
+  .right {
+    flex: 999 1 480px;
+    padding: 32px;
+  }
+  .email-box {
+    padding: 32px;
+    border-bottom: 1px solid var(--line);
+  }
+  .email-box .label {
+    margin-bottom: 10px;
+  }
+  .email-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+  }
+  .email {
+    font-size: 20px;
+    font-weight: 700;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .copy {
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .elsewhere {
+    padding: 24px 32px 8px;
+  }
+  .socials {
+    list-style: none;
+    margin: 0;
+    padding: 0 16px 24px;
+  }
+  .socials li {
+    border-bottom: 1px solid var(--line);
+  }
+  .socials a {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 52px;
+    padding: 0 16px;
+    text-decoration: none;
+  }
+  .s-label {
+    width: 84px;
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .s-handle {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .s-arrow {
+    color: var(--mute);
+  }
+  .form-h {
+    margin-bottom: 24px;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .pair .field {
+    flex: 1 1 200px;
+  }
+  .field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  label {
+    font-size: 13px;
+    color: var(--mute);
+  }
+  input,
+  textarea {
+    width: 100%;
+    border: 1px solid var(--line2);
+    border-radius: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 15px;
+  }
+  input {
+    min-height: 48px;
+    padding: 0 14px;
+  }
+  textarea {
+    padding: 12px 14px;
+    min-height: 200px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  input:focus,
+  textarea:focus {
+    border-color: var(--fg);
+  }
+  .hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .turnstile:empty {
+    display: none;
+  }
+  .send-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .status {
+    margin: 0;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .send {
+    min-height: 48px;
+    padding: 0 22px;
+  }
+  .send:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  @media (max-width: 580px) {
+    .page {
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-top: 32px;
+    }
+    .email-box,
+    .right {
+      padding: 24px 20px;
+    }
+    .elsewhere {
+      padding: 20px 20px 8px;
+    }
+    .socials {
+      padding: 0 4px 16px;
+    }
+  }
+</style>

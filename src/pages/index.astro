@@ -1,0 +1,580 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Prompt from '../components/Prompt.astro';
+import { CATEGORIES, categoryById, byNewest, sortKey, whenLabel } from '../lib/timeline';
+
+const profile = (await getEntry('profile', 'profile'))!.data;
+const entries = (await getCollection('timeline')).sort(byNewest);
+
+const items = await Promise.all(
+  entries.map(async (entry) => ({ entry, cat: categoryById[entry.data.category], Content: (await render(entry)).Content })),
+);
+
+const groups: { year: string; items: typeof items }[] = [];
+for (const item of items) {
+  const year = item.entry.data.date.slice(0, 4);
+  const last = groups.at(-1);
+  if (last?.year === year) last.items.push(item);
+  else groups.push({ year, items: [item] });
+}
+
+const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, entries.filter((e) => e.data.category === c.id).length]));
+const entriesLabel = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
+
+// Which connector each item draws on first render (all shown, newest first). The script recomputes it.
+const lineFor = (gi: number, ii: number, groupLen: number) =>
+  ii < groupLen - 1 ? 'item' : gi < groups.length - 1 ? 'group' : 'none';
+
+const nowTree = profile.now.map((line, i) => `${i === profile.now.length - 1 ? '└──' : '├──'} ${line}`).join('\n');
+const ascii = [
+  '     ██╗████████╗',
+  '     ██║╚══██╔══╝',
+  '     ██║   ██║   ',
+  '██   ██║   ██║   ',
+  '╚█████╔╝   ██║   ',
+  ' ╚════╝    ╚═╝   ',
+].join('\n');
+---
+
+<Base title={`${profile.name}`} description={profile.bio} current="home">
+  <div class="wrap page">
+    <section aria-label="Intro" class="intro">
+      <div class="intro-main">
+        <Prompt cmd="whoami" class="whoami" />
+        <h1>{profile.name}</h1>
+        <p class="bio">{profile.bio}</p>
+        <div class="actions">
+          <a href="/contact/" class="button primary">contact <span aria-hidden="true">→</span></a>
+          <a href={profile.cv} class="button btn">cv.pdf <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+      <div class="intro-side">
+        <pre aria-hidden="true" class="ascii">{ascii}</pre>
+        {
+          profile.now.length > 0 && (
+            <div>
+              <p class="now-h">now/</p>
+              <pre class="now">{nowTree}</pre>
+            </div>
+          )
+        }
+      </div>
+    </section>
+
+    <section aria-labelledby="tl-h" class="tl" data-timeline>
+      <aside aria-label="Timeline filters" class="filters">
+        <div class="filters-h">category</div>
+        <div role="group" aria-label="Category" class="opts">
+          {
+            CATEGORIES.map((c) => (
+              <button type="button" class="opt cat" data-cat={c.id} aria-pressed="true">
+                <span class="mark" data-on="[x]" data-off="[ ]">[x]</span>
+                <span aria-hidden="true" class:list={['glyph', { acc: c.id === 'win' }]}>{c.glyph}</span>
+                <span class="cat-label">{c.label}</span>
+                <span class="count">{counts[c.id]}</span>
+              </button>
+            ))
+          }
+        </div>
+        <div class="filters-h ruled">sort</div>
+        <div role="group" aria-label="Sort" class="opts">
+          <button type="button" class="opt sort" data-order="desc" aria-pressed="true">
+            <span class="mark" data-on="(•)" data-off="( )">(•)</span><span>newest first</span>
+          </button>
+          <button type="button" class="opt sort" data-order="asc" aria-pressed="false">
+            <span class="mark" data-on="(•)" data-off="( )">( )</span><span>oldest first</span>
+          </button>
+        </div>
+        <div class="all-none">
+          <button type="button" class="opt" data-select="all">all</button>
+          <button type="button" class="opt" data-select="none">none</button>
+        </div>
+      </aside>
+
+      <div class="tl-main">
+        <div class="tl-head">
+          <h2 id="tl-h">timeline</h2>
+          <span aria-hidden="true" class="rule"></span>
+          <span aria-live="polite" class="tl-count" data-count>
+            {entries.length} / {entries.length} · newest first
+          </span>
+        </div>
+
+        <div class="empty" data-empty hidden>
+          <p>&gt; no entries match these filters</p>
+          <button type="button" class="button btn small" data-select="all">show all</button>
+        </div>
+
+        <div class="groups" data-groups>
+          {
+            groups.map((g, gi) => (
+              <section class="group" data-group>
+                <div class="group-head">
+                  <span aria-hidden="true" class="vline" />
+                  <span aria-hidden="true" class="node" />
+                  <h3>{g.year}</h3>
+                  <span aria-hidden="true" class="rule dashed" />
+                  <span class="group-count" data-group-count>
+                    {entriesLabel(g.items.length)}
+                  </span>
+                </div>
+                <ol class="items" data-items>
+                  {g.items.map(({ entry, cat, Content }, ii) => (
+                    <li
+                      class="item"
+                      data-item
+                      data-cat={cat.id}
+                      data-key={sortKey(entry.data.date) + entry.id}
+                      data-line={lineFor(gi, ii, g.items.length)}
+                    >
+                      <span aria-hidden="true" class="vline" />
+                      <span aria-hidden="true" class:list={['glyph', { acc: cat.id === 'win' }]}>
+                        {cat.glyph}
+                      </span>
+                      <span aria-hidden="true" class="tick" />
+                      <article class:list={['card', { linked: entry.data.link }]}>
+                        <div class="meta">
+                          <time datetime={entry.data.date}>{whenLabel(entry)}</time>
+                          <span class="chip">{cat.code}</span>
+                          {entry.data.status && <span>[{entry.data.status}]</span>}
+                        </div>
+                        <h4>{entry.data.link ? <a href={entry.data.link}>{entry.data.title}</a> : entry.data.title}</h4>
+                        <div class="desc">
+                          <Content />
+                        </div>
+                        {entry.data.tags.length > 0 && (
+                          <p class="tags">{entry.data.tags.map((t) => '#' + t).join('  ')}</p>
+                        )}
+                      </article>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-timeline]')!;
+  const catButtons = [...root.querySelectorAll<HTMLButtonElement>('button.cat')];
+  const sortButtons = [...root.querySelectorAll<HTMLButtonElement>('button.sort')];
+  const groupsEl = root.querySelector<HTMLElement>('[data-groups]')!;
+  const groups = [...groupsEl.querySelectorAll<HTMLElement>('[data-group]')];
+  const total = root.querySelectorAll('[data-item]').length;
+  const countEl = root.querySelector<HTMLElement>('[data-count]')!;
+  const emptyEl = root.querySelector<HTMLElement>('[data-empty]')!;
+
+  const on = new Set(catButtons.map((b) => b.dataset.cat!));
+  let order: 'desc' | 'asc' = 'desc';
+
+  const setPressed = (btn: HTMLButtonElement, pressed: boolean) => {
+    btn.setAttribute('aria-pressed', String(pressed));
+    const mark = btn.querySelector<HTMLElement>('.mark')!;
+    mark.textContent = pressed ? mark.dataset.on! : mark.dataset.off!;
+  };
+
+  function update() {
+    catButtons.forEach((b) => setPressed(b, on.has(b.dataset.cat!)));
+    sortButtons.forEach((b) => setPressed(b, b.dataset.order === order));
+
+    const dir = order === 'desc' ? -1 : 1;
+    const byKey = (a: HTMLElement, b: HTMLElement) => dir * a.dataset.key!.localeCompare(b.dataset.key!);
+    const sortedGroups = [...groups].sort((a, b) =>
+      byKey(a.querySelector('[data-item]')!, b.querySelector('[data-item]')!),
+    );
+
+    let shown = 0;
+    const visible: HTMLElement[][] = [];
+    for (const group of sortedGroups) {
+      const list = group.querySelector<HTMLElement>('[data-items]')!;
+      const items = [...list.querySelectorAll<HTMLElement>('[data-item]')].sort(byKey);
+      items.forEach((li) => list.append(li));
+      groupsEl.append(group);
+
+      const kept = items.filter((li) => on.has(li.dataset.cat!));
+      items.forEach((li) => (li.hidden = !kept.includes(li)));
+      group.hidden = kept.length === 0;
+      group.querySelector('[data-group-count]')!.textContent = `${kept.length} ${kept.length === 1 ? 'entry' : 'entries'}`;
+      if (kept.length) visible.push(kept);
+      shown += kept.length;
+    }
+
+    visible.forEach((kept, gi) =>
+      kept.forEach((li, ii) => {
+        li.dataset.line = ii < kept.length - 1 ? 'item' : gi < visible.length - 1 ? 'group' : 'none';
+      }),
+    );
+
+    countEl.textContent = `${shown} / ${total} · ${order === 'desc' ? 'newest first' : 'oldest first'}`;
+    emptyEl.hidden = shown > 0;
+    groupsEl.hidden = shown === 0;
+  }
+
+  catButtons.forEach((b) =>
+    b.addEventListener('click', () => {
+      const id = b.dataset.cat!;
+      if (on.has(id)) on.delete(id);
+      else on.add(id);
+      update();
+    }),
+  );
+  sortButtons.forEach((b) =>
+    b.addEventListener('click', () => {
+      order = b.dataset.order as 'desc' | 'asc';
+      update();
+    }),
+  );
+  root.querySelectorAll<HTMLButtonElement>('[data-select]').forEach((b) =>
+    b.addEventListener('click', () => {
+      on.clear();
+      if (b.dataset.select === 'all') catButtons.forEach((c) => on.add(c.dataset.cat!));
+      update();
+    }),
+  );
+</script>
+
+<style>
+  .page {
+    padding-top: 48px;
+  }
+
+  /* intro */
+  .intro {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .intro-main {
+    flex: 999 1 520px;
+    min-width: 0;
+    background: var(--bg);
+    padding: 40px;
+  }
+  .intro-main :global(.whoami) {
+    margin-bottom: 20px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 52px;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .bio {
+    margin: 20px 0 0;
+    max-width: 52ch;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--mute);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .intro-side {
+    flex: 1 1 300px;
+    min-width: 0;
+    background: var(--bg);
+    padding: 36px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 32px;
+  }
+  .ascii {
+    margin: 0;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.15;
+    color: var(--mute);
+    white-space: pre;
+  }
+  .now-h {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--acc);
+  }
+  .now {
+    margin: 0;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+  @media (max-width: 880px) {
+    .intro-side {
+      display: none;
+    }
+  }
+  @media (max-width: 580px) {
+    .page {
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-top: 32px;
+    }
+    .intro-main {
+      padding: 28px 20px;
+    }
+    h1 {
+      font-size: 40px;
+    }
+  }
+
+  /* timeline */
+  .tl {
+    margin-top: 64px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 32px;
+  }
+  .filters {
+    flex: 1 1 240px;
+    min-width: 0;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .filters-h {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .filters-h.ruled {
+    border-top: 1px solid var(--line);
+  }
+  .opts {
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+  }
+  .opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 0;
+    background: transparent;
+    color: var(--fg);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .opt .mark {
+    color: var(--mute);
+  }
+  .opt[aria-pressed='true'] .mark {
+    color: var(--acc);
+  }
+  .cat[aria-pressed='false'] {
+    color: var(--mute);
+  }
+  .cat[aria-pressed='false'] .cat-label {
+    text-decoration: line-through;
+  }
+  .cat .glyph {
+    width: 14px;
+    text-align: center;
+    color: var(--fg);
+  }
+  .glyph.acc {
+    color: var(--acc) !important;
+  }
+  .cat-label {
+    flex: 1;
+  }
+  .count {
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .all-none {
+    display: flex;
+    border-top: 1px solid var(--line);
+  }
+  .all-none .opt {
+    flex: 1;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .all-none .opt + .opt {
+    border-left: 1px solid var(--line);
+  }
+
+  .tl-main {
+    flex: 999 1 560px;
+    min-width: 0;
+  }
+  .tl-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .tl-count {
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .empty {
+    border: 1px dashed var(--line2);
+    padding: 40px 24px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--mute);
+  }
+  .empty p {
+    margin: 0 0 16px;
+  }
+
+  .groups {
+    position: relative;
+    padding-left: 40px;
+  }
+  .group {
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .group-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 40px;
+    margin-bottom: 12px;
+  }
+  .group-head .vline {
+    position: absolute;
+    left: -29px;
+    top: 20px;
+    bottom: -32px;
+    width: 1px;
+    background: var(--line2);
+  }
+  .node {
+    position: absolute;
+    left: -33px;
+    top: 15px;
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--fg);
+    background: var(--bg);
+  }
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .group-count {
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .item {
+    position: relative;
+  }
+  .item .vline {
+    position: absolute;
+    left: -29px;
+    top: 16px;
+    bottom: -32px;
+    width: 1px;
+    background: var(--line2);
+  }
+  .item[data-line='group'] .vline {
+    bottom: -40px;
+  }
+  .item[data-line='none'] .vline {
+    display: none;
+  }
+  .item .glyph {
+    position: absolute;
+    left: -40px;
+    top: 16px;
+    width: 23px;
+    text-align: center;
+    background: var(--bg);
+    font-size: 14px;
+    line-height: 1;
+    color: var(--fg);
+  }
+  .tick {
+    position: absolute;
+    left: -17px;
+    top: 23px;
+    width: 17px;
+    height: 1px;
+    background: var(--line2);
+  }
+  .card {
+    position: relative;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 16px 20px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--mute);
+  }
+  h4 {
+    margin: 10px 0 6px;
+    font-size: 16px;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+  h4 a {
+    text-decoration: none;
+  }
+  /* A linked card is clickable as a whole. */
+  .linked h4 a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .desc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--mute);
+  }
+  .desc :global(p) {
+    margin: 0;
+  }
+  .desc :global(p + p) {
+    margin-top: 8px;
+  }
+  .tags {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: var(--mute);
+    white-space: pre-wrap;
+  }
+</style>

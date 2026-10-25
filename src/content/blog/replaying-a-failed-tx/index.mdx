@@ -1,0 +1,51 @@
+---
+title: Replaying a failed Solana transaction locally
+description: Fork mainnet with Surfpool, run the same transaction again, and read the logs like a stack trace.
+date: 2026-09-12
+tags: [solana, tools]
+---
+
+import Figure from '../../../components/Figure.astro';
+import CodeFigure from '../../../components/CodeFigure.astro';
+
+When a transaction fails on mainnet, the explorer gives you an error code and a wall of logs. I wanted to run the exact same transaction again on my laptop, with the same state, and see what went wrong. This is the setup.
+
+<Figure caption="fig. 1 — from a signature to a root cause" label="Flow: failed transaction signature, then local fork with Surfpool, then replay with logs, then root cause from the Anchor IDL">
+```text
+┌────────────┐    ┌─────────────┐    ┌───────────┐    ┌──────────────┐
+│ failed tx  │───>│ local fork  │───>│  replay   │───>│  root cause  │
+│ signature  │    │ (surfpool)  │    │  + logs   │    │ (anchor idl) │
+└────────────┘    └─────────────┘    └───────────┘    └──────────────┘
+```
+</Figure>
+
+## get the transaction
+
+I use a Helius RPC endpoint and a small TypeScript script, run with `npx tsx`. It takes a signature and prints the status, compute units, logs and which programs were called.
+
+<CodeFigure file="fetch-tx.ts" lang="typescript">
+```ts
+import { Connection } from "@solana/web3.js";
+
+const conn = new Connection(process.env.RPC_URL!);
+const sig = process.argv[2];
+
+const tx = await conn.getTransaction(sig, {
+  maxSupportedTransactionVersion: 0,
+});
+
+console.log(tx?.meta?.err);
+console.log(tx?.meta?.computeUnitsConsumed);
+console.log(tx?.meta?.logMessages);
+```
+</CodeFigure>
+
+## fork and replay
+
+Surfpool runs a local validator that pulls account state from mainnet the first time it is needed. I run it in Docker, point the script at it instead of the public RPC, and send the same transaction again. Now it fails on my machine, where I can add logs and retry as many times as I want.
+
+## read the error
+
+My test case failed with `Custom(57005)` after only 30 compute units, almost at the very start. 57005 in hex is `0xdead`. A custom error is just a number the program decided to return, so the meaning lives in the program, not in Solana. If the program has an Anchor IDL, its error list maps codes to names. That lookup is the step my debugger does for you.
+
+> **next:** turning these three steps into one command that prints the root cause.

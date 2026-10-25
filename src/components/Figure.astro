@@ -1,0 +1,58 @@
+---
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+
+interface Props {
+  /** An imported image (`import shot from './shot.png'`). Leave out to wrap other content, such as an ASCII diagram. */
+  src?: ImageMetadata;
+  alt?: string;
+  caption?: string;
+  /** Accessible description when the content is a text diagram. */
+  label?: string;
+}
+
+const { src, alt = '', caption, label } = Astro.props;
+---
+
+<figure class="fig">
+  {
+    src ? (
+      <Image src={src} alt={alt} class="img" widths={[480, 760, 1140]} sizes="(max-width: 800px) 100vw, 760px" />
+    ) : (
+      <div class="body" role={label ? 'img' : undefined} aria-label={label}>
+        <slot />
+      </div>
+    )
+  }
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .fig {
+    margin: 32px 0 0;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .body {
+    overflow-x: auto;
+    padding: 20px;
+  }
+  .body :global(pre) {
+    margin: 0;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.25;
+    white-space: pre;
+  }
+  .img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  figcaption {
+    padding: 10px 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--mute);
+  }
+</style>
