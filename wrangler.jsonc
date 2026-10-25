@@ -16,5 +16,15 @@
   "vars": {
     "CONTACT_FROM": "contact@jovantomovic.com"
   },
+  // Routes rather than custom domains: the zone's existing proxied DNS records for the apex and www
+  // stay in place (the wildcard and links.* CNAMEs point at the apex), and the Worker answers every
+  // request on these hostnames, so their origin is never contacted.
+  // Keep jovantomovic.jovantomovic5.workers.dev and per-version preview URLs (Workers Builds branch previews).
+  "workers_dev": true,
+  "preview_urls": true,
+  "routes": [
+    { "pattern": "jovantomovic.com/*", "zone_name": "jovantomovic.com" },
+    { "pattern": "www.jovantomovic.com/*", "zone_name": "jovantomovic.com" }
+  ],
   "observability": { "enabled": true }
 }

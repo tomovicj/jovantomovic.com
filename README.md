@@ -104,13 +104,14 @@ A plain `index.md` works too if you don't need `<Figure>` or `<CodeFigure>`. `##
 
 Put the PDF at `public/cv.pdf`.
 
-## Deploy setup (one time)
+## Cloudflare setup (done once, for reference)
 
-1. **Email Routing**: Cloudflare dashboard → jovantomovic.com → Email → Email Routing: enable it and
-   verify the inbox that should receive contact-form messages. Optionally add a rule forwarding
-   `hi@jovantomovic.com` to it.
-2. **Secrets**: `npx wrangler secret put CONTACT_TO` (that verified inbox) and
-   `npx wrangler secret put TURNSTILE_SECRET`.
-3. **Turnstile**: create a widget for `jovantomovic.com` and put its site key in `src/config.ts`.
-4. **Workers Builds**: Workers & Pages → `jovantomovic` → Settings → Builds → connect this repo.
-   Build command `npm run build`, deploy command `npx wrangler deploy`.
+- **Email Routing** is on for jovantomovic.com. `contact@jovantomovic.com` forwards to the verified
+  Gmail inbox, which is also where contact-form messages go (Worker secret `CONTACT_TO`).
+- **Turnstile** widget "jovantomovic.com contact form": site key in `src/config.ts`, secret in the
+  Worker secret `TURNSTILE_SECRET`. To rotate: `npx wrangler secret put TURNSTILE_SECRET`.
+- **Domains**: `jovantomovic.com/*` and `www.jovantomovic.com/*` are Worker routes (`routes` in
+  `wrangler.jsonc`). The zone's existing proxied DNS records stay as they are; other subdomains
+  (`links.`, `github.`, `dev.`, …) and their redirect rules are unaffected.
+- **Workers Builds**: Workers & Pages → `jovantomovic` → Settings → Builds is connected to this repo.
+  Build command `npm run build`, deploy command `npx wrangler deploy`. Every push to `main` deploys.

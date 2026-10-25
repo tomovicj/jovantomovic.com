@@ -13,8 +13,8 @@ links:
     href: https://github.com/tomovicj
     contact: true
   - label: linkedin
-    url: linkedin.com/in/[handle]
-    href: https://www.linkedin.com/
+    url: linkedin.com/in/jovan-tomović-93baa1371
+    href: https://www.linkedin.com/in/jovan-tomovi%C4%87-93baa1371
     contact: true
   - label: x
     url: x.com/[handle]
@@ -28,5 +28,5 @@ links:
     url: cv.pdf · one page
     href: /cv.pdf
   - label: email
-    url: hi@jovantomovic.com
-    href: mailto:hi@jovantomovic.com
+    url: contact@jovantomovic.com
+    href: mailto:contact@jovantomovic.com
