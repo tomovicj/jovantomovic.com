@@ -102,7 +102,7 @@ A plain `index.md` works too if you don't need `<Figure>` or `<CodeFigure>`. `##
 
 ### CV
 
-Put the PDF at `public/cv.pdf`.
+Put the PDF in `public/` and point `cv` in `src/content/profile.yaml` (and the `cv` row in `links.yaml`) at it.
 
 ## Cloudflare setup (done once, for reference)
 

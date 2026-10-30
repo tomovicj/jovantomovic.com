@@ -27,7 +27,7 @@ ${p.data.tags.map((t) => `    <category term="${esc(t)}"/>`).join('\n')}
   const body = `<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Jovan Tomović — blog</title>
-  <subtitle>Notes on Solana, security, hackathons and the tools I build.</subtitle>
+  <subtitle>Notes on events, hackathons and the tools I build.</subtitle>
   <link href="${home}"/>
   <link rel="self" href="${new URL('/blog/atom.xml', site).href}"/>
   <id>${home}</id>

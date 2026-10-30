@@ -26,7 +26,6 @@ const entriesLabel = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
 const lineFor = (gi: number, ii: number, groupLen: number) =>
   ii < groupLen - 1 ? 'item' : gi < groups.length - 1 ? 'group' : 'none';
 
-const nowTree = profile.now.map((line, i) => `${i === profile.now.length - 1 ? '└──' : '├──'} ${line}`).join('\n');
 const ascii = [
   '     ██╗████████╗',
   '     ██║╚══██╔══╝',
@@ -55,7 +54,14 @@ const ascii = [
           profile.now.length > 0 && (
             <div>
               <p class="now-h">now/</p>
-              <pre class="now">{nowTree}</pre>
+              <ul class="now">
+                {profile.now.map((line, i) => (
+                  <li>
+                    <span aria-hidden="true">{i === profile.now.length - 1 ? '└── ' : '├── '}</span>
+                    {line}
+                  </li>
+                ))}
+              </ul>
             </div>
           )
         }
@@ -281,8 +287,9 @@ const ascii = [
     margin-top: 32px;
   }
   .intro-side {
-    flex: 1 1 300px;
-    min-width: 0;
+    /* as wide as the longest now/ line; past half the row it wraps with a hanging indent */
+    flex: none;
+    max-width: 50%;
     background: var(--bg);
     padding: 36px 40px;
     display: flex;
@@ -306,10 +313,24 @@ const ascii = [
   }
   .now {
     margin: 0;
-    font-family: inherit;
+    padding: 0;
+    list-style: none;
     font-size: 13px;
     line-height: 1.75;
+  }
+  /* hanging indent: a wrapped line lines up with the text, not the tree glyph */
+  .now li {
+    padding-left: 4ch;
+    text-indent: -4ch;
     white-space: pre-wrap;
+  }
+  @media (max-width: 1000px) {
+    .intro-main {
+      padding: 40px 28px;
+    }
+    .intro-side {
+      padding: 36px 24px;
+    }
   }
   @media (max-width: 880px) {
     .intro-side {
