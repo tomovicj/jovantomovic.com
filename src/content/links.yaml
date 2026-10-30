@@ -8,25 +8,24 @@ links:
   - label: blog
     url: jovantomovic.com/blog
     href: /blog/
+  - label: linkedin
+    url: linkedin.com/in/jovantomovic
+    href: https://www.linkedin.com/in/jovantomovic
+    contact: true
   - label: github
     url: github.com/tomovicj
     href: https://github.com/tomovicj
-    contact: true
-  - label: linkedin
-    url: linkedin.com/in/jovan-tomović-93baa1371
-    href: https://www.linkedin.com/in/jovan-tomovi%C4%87-93baa1371
-    contact: true
-  - label: x
-    url: x.com/[handle]
-    href: https://x.com/
-    contact: true
   - label: telegram
-    url: t.me/[handle]
-    href: https://t.me/
+    url: t.me/tomovicj
+    href: https://t.me/tomovicj
+    contact: true
+  - label: signal
+    url: tomovicj.55
+    href: https://signal.me/#eu/K4ud5C54nJlXUits7P1YZ5gX2ze-GPcHEebAw_SLlHaARpyhafJMC7lD_kajPcsE
     contact: true
   - label: cv
     url: cv.pdf · one page
-    href: /cv.pdf
+    href: /Jovan_Tomovic_CV.pdf
   - label: email
     url: contact@jovantomovic.com
     href: mailto:contact@jovantomovic.com

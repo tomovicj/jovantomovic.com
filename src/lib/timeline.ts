@@ -2,12 +2,15 @@ import type { CollectionEntry } from 'astro:content';
 
 export const CATEGORIES = [
   { id: 'edu', label: 'education', code: 'EDU', glyph: '◆' },
+  { id: 'cert', label: 'certifications', code: 'CRT', glyph: '✓' },
+  { id: 'internship', label: 'internships', code: 'INT', glyph: '▲' },
   { id: 'event', label: 'events', code: 'EVT', glyph: '●' },
+  { id: 'volunteer', label: 'volunteering', code: 'VOL', glyph: '○' },
   { id: 'project', label: 'projects', code: 'PRJ', glyph: '■' },
   { id: 'win', label: 'achievements', code: 'WIN', glyph: '★' },
 ] as const;
 
-export const CATEGORY_IDS = ['edu', 'event', 'project', 'win'] as const;
+export const CATEGORY_IDS = ['edu', 'cert', 'internship', 'event', 'volunteer', 'project', 'win'] as const;
 export const STATUSES = ['planning', 'wip', 'done'] as const;
 
 export type CategoryId = (typeof CATEGORY_IDS)[number];

@@ -48,7 +48,7 @@ One file per entry. To add one, create a new file (any name; `YYYY-MM-DD-short-n
 ```md
 ---
 date: 2026-10-11          # YYYY, YYYY-MM or YYYY-MM-DD: sorting and the year group come from this
-category: win             # edu | event | project | win
+category: win             # edu | cert | internship | event | volunteer | project | win
 title: 3rd place — GDG DevFest Belgrade AI hackathon
 tags: [ai, hackathon]     # optional
 status: wip               # optional: planning | wip | done
@@ -102,7 +102,7 @@ A plain `index.md` works too if you don't need `<Figure>` or `<CodeFigure>`. `##
 
 ### CV
 
-Put the PDF at `public/cv.pdf`.
+Put the PDF in `public/` and point `cv` in `src/content/profile.yaml` (and the `cv` row in `links.yaml`) at it.
 
 ## Cloudflare setup (done once, for reference)
 
