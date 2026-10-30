@@ -20,6 +20,8 @@ for (const item of items) {
 }
 
 const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, entries.filter((e) => e.data.category === c.id).length]));
+// Categories with no entries are left out of the filters.
+const usedCategories = CATEGORIES.filter((c) => counts[c.id] > 0);
 const entriesLabel = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
 
 // Which connector each item draws on first render (all shown, newest first). The script recomputes it.
@@ -73,7 +75,7 @@ const ascii = [
         <div class="filters-h">category</div>
         <div role="group" aria-label="Category" class="opts">
           {
-            CATEGORIES.map((c) => (
+            usedCategories.map((c) => (
               <button type="button" class="opt cat" data-cat={c.id} aria-pressed="true">
                 <span class="mark" data-on="[x]" data-off="[ ]">[x]</span>
                 <span aria-hidden="true" class:list={['glyph', { acc: c.id === 'win' }]}>{c.glyph}</span>
